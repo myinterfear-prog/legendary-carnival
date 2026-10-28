@@ -1,0 +1,32 @@
+# CyberStream Relay — Netlify deployment.
+#
+# Base directory for the Netlify site is `relay/`, so paths below resolve to
+# `relay/netlify/...`.
+#
+# Two function targets are shipped, deliberately mounted at DIFFERENT paths so
+# both can coexist in one site and be compared side by side:
+#
+#   /api/*    → Netlify EDGE Functions (Deno)     ← RECOMMENDED
+#   /apix/*   → Netlify standard Functions (Lambda) — 60 s hard cap, see README
+#
+# Point the proxy's RELAY_URLS at `https://<site>.netlify.app/api` for the Edge
+# variant. The `/apix` prefix exists only so a Lambda deployment can be A/B
+# tested against it without colliding on `/api`.
+
+[build]
+  # The relay publishes no static assets — it is a pure function endpoint. The
+  # directory exists only because Netlify requires a publish path.
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  # Edge Functions run on Deno; standard Functions follow the build Node
+  # version. 22 is a current, non-deprecated Lambda runtime.
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+
+# Both function targets declare `config.path` in source
+# (`netlify/edge-functions/relay.ts` and `netlify/functions/relay.ts`), so no
+# redirect rules are needed here.

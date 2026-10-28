@@ -1,0 +1,22 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "allowImportingTsExtensions": true,
+    "types": [
+      "@vercel/edge",
+      "@netlify/edge-functions",
+      "@netlify/functions",
+      "@cloudflare/workers-types"
+    ],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["api/**/*.ts", "core/**/*.ts", "netlify/**/*.ts", "cloudflare/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}
