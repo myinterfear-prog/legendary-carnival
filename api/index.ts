@@ -5,12 +5,10 @@
  * Vercel's entry-point contract. `vercel.json` rewrites every path here.
  */
 
-// The `.ts` extension is REQUIRED, not stylistic. Netlify's edge bundler
-// resolves through Deno, which follows the ESM rule that a specifier names a
-// real file — `../core/handler` fails with "Could not find file". esbuild
-// (Vercel) tolerates the bare form, so dropping the extension looks fine
-// everywhere except the one runtime that matters.
-import { handleRelayRequest } from '../core/handler.ts'
+// Vercel preserves this specifier while emitting the core as handler.js.
+// TypeScript resolves it to handler.ts during development; Netlify's separate
+// Deno adapter must keep its explicit .ts specifier.
+import { handleRelayRequest } from '../core/handler.js'
 
 export const config = {
   runtime: 'edge',

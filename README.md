@@ -194,24 +194,30 @@ npm run dev:netlify
 The core is pure Web-standard `Request` → `Response` with no runtime dependencies, so it
 behaves identically on every target.
 
-### ⚠️ Relative imports MUST include the `.ts` extension
+### Relative imports must use the extension required by their runtime
+
+Netlify's Deno edge adapter, the portable core, and the other adapters use explicit
+`.ts` extensions:
 
 ```ts
-import { handleRelayRequest } from '../../core/handler.ts' // ✅
-import { handleRelayRequest } from '../../core/handler' // ❌ deploy fails
+import { handleRelayRequest } from '../../core/handler.ts'
 ```
 
 Netlify bundles edge functions through **Deno**, which treats an import specifier as a
-literal file path. The extensionless form fails the deploy with:
+literal file path. An extensionless import fails with `Could not find file`.
 
-```
-Could not find file: file:///opt/build/repo/core/handler
+The **Vercel adapter** (`api/index.ts`) instead imports the emitted `.js` path:
+
+```ts
+import { handleRelayRequest } from '../core/handler.js'
 ```
 
-Typecheck will **not** catch this — `allowImportingTsExtensions` permits `.ts` specifiers
-but does not require them, and esbuild (Vercel, Netlify standard Functions) resolves the
-bare form happily. `core/imports.test.ts` is the guard: it fails if any relative import
-lacks an extension or points at a missing file.
+TypeScript resolves this to `core/handler.ts` for typechecking. Vercel emits that file
+as `core/handler.js` but preserves the import specifier, so a `.ts` import in the
+Vercel adapter leaves an unsupported module reference in the deployed Edge Function.
+
+`core/imports.test.ts` guards these runtime-specific extensions and checks that every
+relative import resolves to an existing source file.
 
 ---
 

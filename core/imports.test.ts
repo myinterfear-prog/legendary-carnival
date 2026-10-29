@@ -1,21 +1,7 @@
 /**
- * Import-specifier discipline.
- *
- * A relative import in this project must name a real file, extension
- * included. This is not stylistic: Netlify bundles edge functions through
- * Deno, which follows the ESM rule that a specifier is a literal path.
- *
- *   import { handleRelayRequest } from '../../core/handler'
- *   → Error: Could not find file: file:///opt/build/repo/core/handler
- *
- * The failure only appears on Netlify's edge runtime. esbuild — behind both
- * Vercel and Netlify standard Functions — happily resolves the bare form and
- * inlines the extension, so typecheck passes and local builds pass. The
- * omission is invisible until the deploy, which is the worst place to find it.
- *
- * TypeScript cannot guard this either: `allowImportingTsExtensions` permits
- * `.ts` specifiers but does not REQUIRE them, so both forms compile. This
- * test is the only thing standing between a refactor and a red build.
+ * Deno needs literal .ts paths, while Vercel preserves import specifiers in
+ * emitted JavaScript and needs .js paths. Typechecking accepts both, so it
+ * cannot catch a specifier that works locally but fails during deployment.
  */
 
 import { describe, test, expect } from 'vitest'
@@ -59,14 +45,14 @@ describe('relative imports carry an explicit extension', () => {
 
   for (const file of files) {
     const rel = file.slice(ROOT.length + 1)
-    test(`${rel} uses extension-qualified specifiers`, () => {
+    test(`${rel} uses runtime-compatible extension-qualified specifiers`, () => {
       const source = readFileSync(file, 'utf8')
+      const extension = rel === 'api/index.ts' ? '.js' : '.ts'
       for (const specifier of relativeImports(source)) {
         expect(
-          specifier.endsWith('.ts'),
-          `${rel} imports '${specifier}' without a file extension. Netlify's edge ` +
-            `bundler runs on Deno, which resolves specifiers as literal paths and ` +
-            `fails the deploy with "Could not find file". Use '${specifier}.ts'.`
+          specifier.endsWith(extension),
+          `${rel} imports '${specifier}' but requires a ${extension} extension. ` +
+            'Vercel needs emitted .js paths; Deno needs literal .ts source paths.'
         ).toBe(true)
       }
     })
@@ -76,7 +62,10 @@ describe('relative imports carry an explicit extension', () => {
     // Catches a renamed core module that still typechecks via stale output.
     for (const file of files) {
       for (const specifier of relativeImports(readFileSync(file, 'utf8'))) {
-        const target = resolve(dirname(file), specifier)
+        const sourceSpecifier = file === join(ROOT, 'api/index.ts')
+          ? specifier.replace(/\.js$/, '.ts')
+          : specifier
+        const target = resolve(dirname(file), sourceSpecifier)
         expect(
           statSync(target).isFile(),
           `${file.slice(ROOT.length + 1)} imports '${specifier}', which does not exist`
